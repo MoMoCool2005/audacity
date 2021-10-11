@@ -90,21 +90,21 @@
 #include "../AColor.h"
 #include "../Shuttle.h"
 #include "../ShuttleGui.h"
-#include "../PlatformCompatibility.h"
-#include "../FileNames.h"
+#include "PlatformCompatibility.h"
+#include "FileNames.h"
 #include "../Envelope.h"
 #include "../EnvelopeEditor.h"
 #include "FFT.h"
 #include "Prefs.h"
-#include "../Project.h"
+#include "Project.h"
 #include "../Theme.h"
 #include "../TrackArtist.h"
 #include "../WaveClip.h"
-#include "../ViewInfo.h"
+#include "ViewInfo.h"
 #include "../WaveTrack.h"
 #include "../widgets/Ruler.h"
 #include "../widgets/AudacityTextEntryDialog.h"
-#include "../xml/XMLFileReader.h"
+#include "XMLFileReader.h"
 #include "../AllThemeResources.h"
 #include "float_cast.h"
 
@@ -1384,8 +1384,6 @@ bool EffectEqualization::ProcessOne(int count, WaveTrack * t,
       output->Append((samplePtr)buffer.get(), floatSample, mM - 1);
       output->Flush();
 
-      std::vector<EnvPoint> envPoints;
-
       // now move the appropriate bit of the output back to the track
       // (this could be enhanced in the future to use the tails)
       double offsetT0 = t->LongSamplesToTime(offset);
@@ -1408,8 +1406,8 @@ bool EffectEqualization::ProcessOne(int count, WaveTrack * t,
          double clipStartT;
          double clipEndT;
 
-         clipStartT = clip->GetStartTime();
-         clipEndT = clip->GetEndTime();
+         clipStartT = clip->GetPlayStartTime();
+         clipEndT = clip->GetPlayEndTime();
          if( clipEndT <= startT )
             continue;   // clip is not within selection
          if( clipStartT >= startT + lenT )
@@ -1425,14 +1423,7 @@ bool EffectEqualization::ProcessOne(int count, WaveTrack * t,
 
          //save them
          clipStartEndTimes.push_back(std::pair<double,double>(clipStartT,clipEndT));
-
-         // Save the envelope points
-         const auto &env = *clip->GetEnvelope();
-         for (size_t i = 0, numPoints = env.GetNumberOfPoints(); i < numPoints; ++i) {
-            envPoints.push_back(env[i]);
-         }
       }
-
       //now go thru and replace the old clips with NEW
       for(unsigned int i = 0; i < clipStartEndTimes.size(); i++)
       {
@@ -1448,12 +1439,6 @@ bool EffectEqualization::ProcessOne(int count, WaveTrack * t,
             !(clipRealStartEndTimes[i].first <= startT &&
             clipRealStartEndTimes[i].second >= startT+lenT) )
             t->Join(clipRealStartEndTimes[i].first,clipRealStartEndTimes[i].second);
-      }
-
-      // Restore the envelope points
-      for (auto point : envPoints) {
-         WaveClip *clip = t->GetClipAtTime(point.GetT());
-         clip->GetEnvelope()->Insert(point.GetT(), point.GetVal());
       }
    }
 

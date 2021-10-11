@@ -1,7 +1,7 @@
 #include "../CommonCommandFlags.h"
 #include "../Menus.h"
 #include "Prefs.h"
-#include "../Project.h"
+#include "Project.h"
 #include "../ProjectHistory.h"
 #include "../ProjectSettings.h"
 #include "../ProjectWindow.h"
@@ -9,7 +9,7 @@
 #include "../TrackInfo.h"
 #include "../TrackPanel.h"
 #include "../UndoManager.h"
-#include "../ViewInfo.h"
+#include "ViewInfo.h"
 #include "../commands/CommandContext.h"
 #include "../commands/CommandManager.h"
 #include "../prefs/GUIPrefs.h"
@@ -153,7 +153,7 @@ void DoZoomFitV(AudacityProject &project)
    height = std::max( (int)TrackInfo::MinimumTrackHeight(), height );
 
    for (auto t : range)
-      TrackView::Get( *t ).SetHeight(height);
+      TrackView::Get( *t ).SetExpandedHeight(height);
 }
 }
 

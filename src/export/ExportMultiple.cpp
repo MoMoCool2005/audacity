@@ -38,11 +38,12 @@
 #include <wx/textctrl.h>
 #include <wx/textdlg.h>
 
-#include "../FileNames.h"
-#include "../LabelTrack.h"
-#include "../Project.h"
-#include "../ProjectSettings.h"
-#include "../ProjectWindow.h"
+#include "FileNames.h"
+#include "LabelTrack.h"
+#include "Project.h"
+#include "ProjectSettings.h"
+#include "ProjectWindow.h"
+#include "ProjectWindows.h"
 #include "Prefs.h"
 #include "../SelectionState.h"
 #include "../ShuttleGui.h"

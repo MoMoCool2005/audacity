@@ -22,11 +22,11 @@ Paul Licameli split from WaveTrackView.cpp
 #include "../../../../Envelope.h"
 #include "../../../../EnvelopeEditor.h"
 #include "../../../../ProjectSettings.h"
-#include "../../../../SelectedRegion.h"
+#include "SelectedRegion.h"
 #include "../../../../TrackArtist.h"
 #include "../../../../TrackPanelDrawingContext.h"
 #include "../../../../TrackPanelMouseEvent.h"
-#include "../../../../ViewInfo.h"
+#include "ViewInfo.h"
 #include "../../../../WaveClip.h"
 #include "../../../../WaveTrack.h"
 #include "../../../../prefs/WaveformSettings.h"
@@ -482,11 +482,11 @@ void DrawIndividualSamples(TrackPanelDrawingContext &context,
    const auto artist = TrackArtist::Get( context );
    const auto &zoomInfo = *artist->pZoomInfo;
 
-   const double toffset = clip->GetOffset();
+   const double toffset = clip->GetPlayStartTime();
    double rate = clip->GetRate();
    const double t0 = std::max(0.0, zoomInfo.PositionToTime(0, -leftOffset) - toffset);
    const auto s0 = sampleCount(floor(t0 * rate));
-   const auto snSamples = clip->GetNumSamples();
+   const auto snSamples = clip->GetPlaySamplesCount();
    if (s0 > snSamples)
       return;
 
@@ -807,7 +807,7 @@ void DrawClipWaveform(TrackPanelDrawingContext &context,
       if (portion.inFisheye) {
          if (!showIndividualSamples) {
             fisheyeDisplay.Allocate();
-            const auto numSamples = clip->GetNumSamples();
+            const auto numSamples = clip->GetPlaySamplesCount();
             // Get wave display data for different magnification
             int jj = 0;
             for (; jj < rectPortion.width; ++jj) {
@@ -902,8 +902,7 @@ void DrawClipWaveform(TrackPanelDrawingContext &context,
       TrackArt::DrawNegativeOffsetTrackArrows( context, rect );
    }
    {
-      //increase virtual view size by px to hide edges that should not be visible
-      auto clipRect = ClipParameters::GetClipRect(*clip, zoomInfo, rect.Inflate(1, 0), 1);
+      auto clipRect = ClipParameters::GetClipRect(*clip, zoomInfo, rect);
       if (!clipRect.IsEmpty())
           TrackArt::DrawClipEdges(dc, clipRect, selected);
    }
@@ -1076,11 +1075,6 @@ struct WaveColorMenuTable : PopupMenuTable
    static WaveColorMenuTable &Instance();
 
    void InitUserData(void *pUserData) override;
-
-   void DestroyMenu() override
-   {
-      mpData = NULL;
-   }
 
    PlayableTrackControls::InitMenuData *mpData{};
 

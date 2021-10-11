@@ -82,14 +82,15 @@
 // TODO:  Unfortunately we have some dependencies on Audacity provided 
 //        dialogs, widgets and other stuff.  This will need to be cleaned up.
 
-#include "../../FileNames.h"
-#include "../../PlatformCompatibility.h"
+#include "FileNames.h"
+#include "PlatformCompatibility.h"
+#include "../../SelectFile.h"
 #include "../../ShuttleGui.h"
 #include "../../effects/Effect.h"
 #include "../../widgets/valnum.h"
 #include "../../widgets/AudacityMessageBox.h"
 #include "../../widgets/NumericTextCtrl.h"
-#include "../../xml/XMLFileReader.h"
+#include "XMLFileReader.h"
 
 #if wxUSE_ACCESSIBILITY
 #include "../../widgets/WindowAccessible.h"
@@ -1435,7 +1436,7 @@ size_t VSTEffect::ProcessBlock(float **inBlock, float **outBlock, size_t blockLe
       callProcessReplacing(inBlock, outBlock, blockLen);
 
       // And track the position
-      mTimeInfo.samplePos += ((double) blockLen / mTimeInfo.sampleRate);
+      mTimeInfo.samplePos += (double) blockLen;
    }
 
    return blockLen;
@@ -1852,8 +1853,8 @@ void VSTEffect::ExportPresets()
    // Ask the user for the real name
    //
    // Passing a valid parent will cause some effects dialogs to malfunction
-   // upon returning from the FileNames::SelectFile().
-   path = FileNames::SelectFile(FileNames::Operation::Presets,
+   // upon returning from the SelectFile().
+   path = SelectFile(FileNames::Operation::Presets,
       XO("Save VST Preset As:"),
       wxEmptyString,
       wxT("preset"),
@@ -1910,7 +1911,7 @@ void VSTEffect::ImportPresets()
    wxString path;
 
    // Ask the user for the real name
-   path = FileNames::SelectFile(FileNames::Operation::Presets,
+   path = SelectFile(FileNames::Operation::Presets,
       XO("Load VST Preset:"),
       wxEmptyString,
       wxT("preset"),

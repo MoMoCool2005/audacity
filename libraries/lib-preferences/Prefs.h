@@ -200,7 +200,7 @@ protected:
 };
 
 //! This specialization of Setting for bool adds a Toggle method to negate the saved value
-class BoolSetting final : public Setting< bool >
+class PREFERENCES_API BoolSetting final : public Setting< bool >
 {
 public:
    using Setting::Setting;
@@ -240,6 +240,9 @@ class PREFERENCES_API EnumValueSymbols : public std::vector< EnumValueSymbol >
 public:
    EnumValueSymbols() = default;
    EnumValueSymbols( std::initializer_list<EnumValueSymbol> symbols )
+     : vector( symbols )
+   {}
+   EnumValueSymbols( std::vector< EnumValueSymbol > symbols )
      : vector( symbols )
    {}
 

@@ -18,12 +18,15 @@ Paul Licameli split from TrackPanel.cpp
 #include "../../../LabelTrack.h"
 
 #include "../../../AColor.h"
+#include "../../../widgets/BasicMenu.h"
 #include "../../../AllThemeResources.h"
 #include "../../../HitTestResult.h"
-#include "../../../Project.h"
+#include "Project.h"
 #include "../../../ProjectHistory.h"
+#include "ProjectRate.h"
 #include "../../../ProjectSettings.h"
 #include "../../../ProjectWindow.h"
+#include "../../../ProjectWindows.h"
 #include "../../../RefreshCode.h"
 #include "../../../Theme.h"
 #include "../../../TrackArtist.h"
@@ -31,8 +34,9 @@ Paul Licameli split from TrackPanel.cpp
 #include "../../../TrackPanel.h"
 #include "../../../TrackPanelMouseEvent.h"
 #include "../../../UndoManager.h"
-#include "../../../ViewInfo.h"
+#include "ViewInfo.h"
 #include "../../../widgets/AudacityTextEntryDialog.h"
+#include "../../../widgets/wxWidgetsWindowPlacement.h"
 
 #include <wx/clipbrd.h>
 #include <wx/dcclient.h>
@@ -1505,6 +1509,7 @@ bool LabelTrackView::DoKeyDown(
    const auto pTrack = FindLabelTrack();
    const auto &mLabels = pTrack->GetLabels();
    if (IsValidIndex(mTextEditIndex, project)) {
+      // Do label text changes
       auto labelStruct = mLabels[mTextEditIndex];
       auto &title = labelStruct.title;
       wxUniChar wchar;
@@ -1672,13 +1677,21 @@ bool LabelTrackView::DoKeyDown(
    }
    else
    {
+      // Do navigation
       switch (keyCode) {
 
+      case WXK_ESCAPE:
+          mNavigationIndex = -1;
+          break;
       case WXK_TAB:
       case WXK_NUMPAD_TAB:
          if (!mLabels.empty()) {
             int len = (int) mLabels.size();
-            if (IsValidIndex(mNavigationIndex, project))
+            // The case where the start of selection is the same as the
+            // start of a label is handled separately so that if some labels
+            // have the same start time, all labels are navigated.
+            if (IsValidIndex(mNavigationIndex, project)
+               && mLabels[mNavigationIndex].getT0() == newSel.t0())
             {
                 if (event.ShiftDown()) {
                     --mNavigationIndex;
@@ -1690,7 +1703,6 @@ bool LabelTrackView::DoKeyDown(
             }
             else
             {
-                // no valid navigation index, then
                 if (event.ShiftDown()) {
                     //search for the first label starting from the end (and before selection)
                     mNavigationIndex = len - 1;
@@ -1719,6 +1731,16 @@ bool LabelTrackView::DoKeyDown(
                mInitialCursorPos = mCurrentCursorPos;
                //Set the selection region to be equal to the selection bounds of the tabbed-to label.
                newSel = labelStruct.selectedRegion;
+               // message for screen reader
+               /* i18n-hint:
+                  String is replaced by the name of a label,
+                  first number gives the position of that label in a sequence
+                  of labels,
+                  and the last number is the total number of labels in the sequence.
+               */
+               auto message = XO("%s %d of %d")
+                  .Format(labelStruct.title, mNavigationIndex + 1, pTrack->GetNumLabels());
+               TrackFocus::Get(project).MessageForScreenReader(message);
             }
             else {
                mNavigationIndex = -1;
@@ -1902,7 +1924,10 @@ void LabelTrackView::ShowContextMenu( AudacityProject &project )
       // So, workaround it by editing the label AFTER the popup menu is
       // closed. It's really ugly, but it works.  :-(
       mEditIndex = -1;
-      parent->PopupMenu(&menu, x, ls->y + (mIconHeight / 2) - 1);
+      BasicMenu::Handle{ &menu }.Popup(
+         wxWidgetsWindowPlacement{ parent },
+         { x, ls->y + (mIconHeight / 2) - 1 }
+      );
       if (mEditIndex >= 0)
       {
          DoEditLabels( project, FindLabelTrack().get(), mEditIndex );
@@ -2223,7 +2248,7 @@ void LabelTrackView::DoEditLabels
    auto format = settings.GetSelectionFormat(),
       freqFormat = settings.GetFrequencySelectionFormatName();
    auto &tracks = TrackList::Get( project );
-   auto rate = ProjectSettings::Get( project ).GetRate();
+   auto rate = ProjectRate::Get( project ).GetRate();
    auto &viewInfo = ViewInfo::Get( project );
    auto &window = ProjectWindow::Get( project );
 
@@ -2253,9 +2278,10 @@ int LabelTrackView::DialogForLabelName(
       trackPanel.FindTrackRect( trackFocus.Get() ).GetBottomLeft();
    // The start of the text in the text box will be roughly in line with the label's position
    // if it's a point label, or the start of its region if it's a region label.
-   position.x += viewInfo.GetLabelWidth()
-      + std::max(0, static_cast<int>(viewInfo.TimeToPosition(region.t0())))
-      -40;
+   position.x +=
+      + std::max(0, static_cast<int>(viewInfo.TimeToPosition(
+         viewInfo.GetLeftOffset(), region.t0())))
+      - 39;
    position.y += 2;  // just below the bottom of the track
    position = trackPanel.ClientToScreen(position);
    auto &window = GetProjectFrame( project );
@@ -2290,12 +2316,11 @@ int LabelTrackView::DialogForLabelName(
 }
 
 using DoGetLabelTrackView = DoGetView::Override< LabelTrack >;
-template<> template<> auto DoGetLabelTrackView::Implementation() -> Function {
+DEFINE_ATTACHED_VIRTUAL_OVERRIDE(DoGetLabelTrackView) {
    return [](LabelTrack &track) {
       return std::make_shared<LabelTrackView>( track.SharedPointer() );
    };
 }
-static DoGetLabelTrackView registerDoGetLabelTrackView;
 
 std::shared_ptr<TrackVRulerControls> LabelTrackView::DoGetVRulerControls()
 {

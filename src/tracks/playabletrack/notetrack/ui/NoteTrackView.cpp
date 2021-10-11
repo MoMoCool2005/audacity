@@ -24,7 +24,7 @@ Paul Licameli split from TrackPanel.cpp
 #include "../../../../TrackArtist.h"
 #include "../../../../TrackPanelDrawingContext.h"
 #include "../../../../TrackPanelMouseEvent.h"
-#include "../../../../ViewInfo.h"
+#include "ViewInfo.h"
 #include "../../../ui/SelectHandle.h"
 #include "StretchHandle.h"
 #include "NoteTrackAffordanceControls.h"
@@ -60,12 +60,11 @@ std::vector<UIHandlePtr> NoteTrackView::DetailedHitTest
 }
 
 using DoGetNoteTrackView = DoGetView::Override< NoteTrack >;
-template<> template<> auto DoGetNoteTrackView::Implementation() -> Function {
+DEFINE_ATTACHED_VIRTUAL_OVERRIDE(DoGetNoteTrackView) {
    return [](NoteTrack &track) {
       return std::make_shared<NoteTrackView>( track.SharedPointer() );
    };
 }
-static DoGetNoteTrackView registerDoGetNoteTrackView;
 
 std::shared_ptr<TrackVRulerControls> NoteTrackView::DoGetVRulerControls()
 {
@@ -76,9 +75,13 @@ std::shared_ptr<TrackVRulerControls> NoteTrackView::DoGetVRulerControls()
 #define TIME_TO_X(t) (zoomInfo.TimeToPosition((t), rect.x))
 #define X_TO_TIME(xx) (zoomInfo.PositionToTime((xx), rect.x))
 
-std::shared_ptr<CommonTrackCell> NoteTrackView::DoGetAffordanceControls()
+std::shared_ptr<CommonTrackCell> NoteTrackView::GetAffordanceControls()
 {
-   return std::make_shared<NoteTrackAffordanceControls>(DoFindTrack());
+   if (mpAffordanceCellControl == nullptr)
+   {
+      mpAffordanceCellControl = std::make_shared<NoteTrackAffordanceControls>(DoFindTrack());
+   }
+   return mpAffordanceCellControl;
 }
 
 namespace {

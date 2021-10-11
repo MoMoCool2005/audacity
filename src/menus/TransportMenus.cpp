@@ -3,18 +3,21 @@
 #include "../AdornedRulerPanel.h"
 #include "../AudioIO.h"
 #include "../CommonCommandFlags.h"
-#include "../DeviceManager.h"
+#include "DeviceManager.h"
 #include "../LabelTrack.h"
 #include "../Menus.h"
 #include "Prefs.h"
-#include "../Project.h"
+#include "Project.h"
 #include "../ProjectAudioIO.h"
 #include "../ProjectAudioManager.h"
 #include "../ProjectFileIO.h"
 #include "../ProjectHistory.h"
+#include "ProjectRate.h"
 #include "../ProjectSettings.h"
+#include "../ProjectWindows.h"
 #include "../ProjectWindow.h"
 #include "../ProjectManager.h"
+#include "../SelectUtilities.h"
 #include "../SoundActivatedRecord.h"
 #include "../TimerRecordDialog.h"
 #include "../TrackPanelAx.h"
@@ -24,7 +27,7 @@
 #include "../prefs/RecordingPrefs.h"
 #include "../prefs/TracksPrefs.h"
 #include "../WaveTrack.h"
-#include "../ViewInfo.h"
+#include "ViewInfo.h"
 #include "../commands/CommandContext.h"
 #include "../commands/CommandManager.h"
 #include "../toolbars/ControlToolBar.h"
@@ -294,6 +297,12 @@ void DoMoveToLabel(AudacityProject &project, bool next)
             window.ScrollIntoView(selectedRegion.t0());
             window.RedrawProject();
          }
+         /* i18n-hint:
+            String is replaced by the name of a label,
+            first number gives the position of that label in a sequence
+            of labels,
+            and the last number is the total number of labels in the sequence.
+         */
          auto message = XO("%s %d of %d")
             .Format( label->title, i + 1, lt->GetNumLabels() );
          trackFocus.MessageForScreenReader(message);
@@ -408,7 +417,8 @@ void OnTimerRecord(const CommandContext &context)
 
    const auto existingTracks{ ProjectAudioManager::ChooseExistingRecordingTracks(project, true, rateOfSelected) };
    if (existingTracks.empty()) {
-      if (numberOfSelected > 0 && rateOfSelected != settings.GetRate()) {
+      if (numberOfSelected > 0 && rateOfSelected !=
+          ProjectRate::Get(project).GetRate()) {
          AudacityMessageBox(XO(
             "Too few tracks are selected for recording at this sample rate.\n"
             "(Audacity requires two channels at the same sample rate for\n"
@@ -573,7 +583,7 @@ void OnPunchAndRoll(const CommandContext &context)
          // May adjust t1 left
          // Let's ignore the possibility of a clip even shorter than the
          // crossfade duration!
-         newt1 = std::min(newt1, clip->GetEndTime() - crossFadeDuration);
+         newt1 = std::min(newt1, clip->GetPlayEndTime() - crossFadeDuration);
       }
    }
 
@@ -644,12 +654,12 @@ void OnPunchAndRoll(const CommandContext &context)
 
 void OnLockPlayRegion(const CommandContext &context)
 {
-   AdornedRulerPanel::Get( context.project ).LockPlayRegion();
+   SelectUtilities::LockPlayRegion(context.project);
 }
 
 void OnUnlockPlayRegion(const CommandContext &context)
 {
-   AdornedRulerPanel::Get( context.project ).UnlockPlayRegion();
+   SelectUtilities::UnlockPlayRegion(context.project);
 }
 
 void OnRescanDevices(const CommandContext &WXUNUSED(context) )
